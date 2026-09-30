@@ -56,7 +56,7 @@ export async function createVehicle(canvas) {
  let compiled=false;
  const parent=canvas.parentElement;function resize(){const w=parent.clientWidth,h=parent.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();if(compiled)renderer.render(scene,camera)}
  resize();const observer=new ResizeObserver(resize);observer.observe(parent);
- function render(progress=0,focused=false){car.rotation.y=-.15+progress*.42;car.position.y=Math.sin(progress*Math.PI)*.055;car.position.x=progress*.12;const scale=focused?1.015:1;car.scale.setScalar(scale);renderer.render(scene,camera)}
+ function render(progress=0,focused=false,orbit=0){car.rotation.y=-.15+progress*.65+orbit;car.position.y=Math.sin(progress*Math.PI)*.065;car.position.x=progress*.12;camera.position.y=3.5+Math.sin(progress*Math.PI)*.35;camera.lookAt(0,.65,0);const scale=focused?1.015:1;car.scale.setScalar(scale);renderer.render(scene,camera)}
  canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();canvas.classList.remove('ready');parent.classList.remove('webgl-ready')});
  canvas.addEventListener('webglcontextrestored',()=>{render();canvas.classList.add('ready');parent.classList.add('webgl-ready')});
  await renderer.compileAsync(scene,camera);compiled=true;

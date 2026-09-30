@@ -1,0 +1,27 @@
+import {chromium} from '@playwright/test';
+import {writeFile} from 'node:fs/promises';
+const browser=await chromium.launch({channel:'chrome',headless:true,args:['--enable-webgl','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+const results=[];const errors=[];
+try{
+ const page=await browser.newPage({viewport:{width:1440,height:900}});page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text())});
+ await page.goto('http://127.0.0.1:4173',{waitUntil:'networkidle'});await page.waitForTimeout(500);
+ await page.screenshot({path:'qa/interactive-hero.png'});
+ await page.locator('[data-orbit="1"]').click();await page.waitForTimeout(600);const rotated=await page.locator('.vehicle-fallback img').evaluate(e=>e.style.transform);if(!rotated.includes('rotateY(')||rotated.includes('rotateY(0deg)'))throw new Error('Rotate control failed');
+ await page.locator('.reset-view').click();await page.waitForTimeout(700);const reset=await page.locator('.vehicle-fallback img').evaluate(e=>e.style.transform);if(!reset.includes('rotateY(0deg)'))throw new Error('Reset control failed: '+reset+' errors: '+JSON.stringify(errors));
+ const stage=page.locator('.vehicle-stage');await stage.focus();await page.keyboard.press('ArrowRight');await page.waitForTimeout(500);if((await stage.locator('img').evaluate(e=>e.style.transform)).includes('rotateY(0deg)'))throw new Error('Keyboard orbit failed');
+ await page.locator('[data-chapter="4"]').click();await page.waitForTimeout(800);if(await page.locator('.hero-scene').getAttribute('data-phase')!=='4')throw new Error('Chapter navigation failed');
+ await page.locator('[data-chapter="0"]').click();await page.waitForTimeout(800);await page.locator('.debt-ipva').click();if(await page.locator('.debt-ipva').getAttribute('aria-pressed')!=='false')throw new Error('Debt selection failed');
+ await page.locator('[data-installments="6"]').click();await page.waitForTimeout(300);if(await page.locator('#installment-value').innerText()!=='6x')throw new Error('Installment preset failed');if(await page.locator('.installment-active').count()!==6)throw new Error('Installment visual mismatch');
+ await page.locator('#installments').focus();await page.keyboard.press('ArrowLeft');if(await page.locator('#installments').inputValue()!=='5')throw new Error('Range keyboard failed');
+ await page.locator('#parcelamento').evaluate(e=>scrollTo({top:e.getBoundingClientRect().top+scrollY-100,behavior:'instant'}));await page.waitForTimeout(400);await page.screenshot({path:'qa/interactive-payment.png'});
+ await page.locator('[data-app-step="0"]').click();await page.locator('[data-phone-direction="1"]').click();if(await page.locator('#phone-page').innerText()!=='02 / 03')throw new Error('Phone next failed');await page.locator('[data-phone-direction="-1"]').click();if(await page.locator('#phone-page').innerText()!=='01 / 03')throw new Error('Phone previous failed');
+ await page.locator('#app').evaluate(e=>scrollTo({top:e.getBoundingClientRect().top+scrollY,behavior:'instant'}));await page.waitForTimeout(400);await page.screenshot({path:'qa/interactive-app.png'});
+ for(const [width,height]of [[1440,900],[1920,1080],[1280,800],[390,844],[393,852],[430,932]]){await page.setViewportSize({width,height});await page.evaluate(()=>scrollTo({top:0,behavior:'instant'}));await page.waitForTimeout(200);const sw=await page.evaluate(()=>document.documentElement.scrollWidth);if(sw>width)throw new Error('Overflow '+width+': '+sw);results.push({width,height,overflow:false});}
+ await page.setViewportSize({width:390,height:844});await page.locator('.hero-scene').evaluate(e=>scrollTo({top:e.getBoundingClientRect().top+scrollY-90,behavior:'instant'}));await page.waitForTimeout(300);await page.screenshot({path:'qa/interactive-mobile.png'});
+ await page.locator('[data-chapter="4"]').click();await page.waitForTimeout(700);if(await page.locator('.hero-scene').getAttribute('data-phase')!=='4')throw new Error('Mobile chapter navigation failed');
+ await page.emulateMedia({reducedMotion:'reduce'});await page.locator('[data-installments="1"]').click();if(await page.locator('#installment-value').innerText()!=='1x')throw new Error('Reduced motion interactions failed');
+ const touch=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await touch.goto('http://127.0.0.1:4173',{waitUntil:'networkidle'});await touch.locator('[data-app-step="0"]').tap();await touch.locator('.phone').scrollIntoViewIfNeeded();const box=await touch.locator('.phone').boundingBox();const cdp=await touch.context().newCDPSession(touch);const start={x:box.x+box.width*.8,y:box.y+180};await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[start]});await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:start.x-90,y:start.y}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await touch.waitForTimeout(250);if(await touch.locator('#phone-page').innerText()!=='02 / 03')throw new Error('Touch swipe failed');await touch.close();
+ if(errors.length)throw new Error(errors.join('\n'));
+ console.log(JSON.stringify({results,errors,checks:['orbit buttons','keyboard orbit','reset','hero chapters','debt selection','payment presets','payment keyboard slider','phone previous/next','responsive overflow','mobile chapters','reduced motion']}));
+ await writeFile('qa/interactive-results.json',JSON.stringify({results,errors},null,2));
+}finally{await browser.close()}

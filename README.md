@@ -34,6 +34,17 @@ A copy entregue na conversa foi preservada. Depoimentos, promoção e certifica�
 
 ## Validação
 
+### Interatividade ampliada
+
+- Veículo com arraste horizontal, setas do teclado, controles de rotação e restauração. Em dispositivos sem aceleração gráfica, a imagem responde em perspectiva, sem fingir uma órbita 3D completa.
+- Cinco capítulos da hero selecionáveis, cards de débito que podem ser marcados e desmarcados e convergência visual para o celular.
+- Controle de 1 a 12 parcelas, com slider acessível, atalhos 1x/6x/12x e reorganização dos blocos. É uma demonstração visual, sem cálculos de taxas ou transações.
+- Telas do app com anterior/próxima, gesto horizontal em touch e perspectiva sutil no mouse.
+- Navegação lateral por capítulos, progresso de leitura, transições de entrada e destaque do passo atual.
+- Interpolação baseada em tempo, agendador único, respeito a reduced motion e pausa das animações ambientais com formulário em foco ou aba oculta.
+
+Teste adicional: `node scripts/qa.mjs --interactive`. Inspeções e resultados ficam em `qa/interactive-*`.
+
 O script de QA cobre 1440×900, 1920×1080, 1280×800, 390×844, 393×852 e 430×932; overflow, scroll de ida e volta, formulário, placa antiga/Mercosul, FAQ, seleção de débitos ilustrativa, telas do app, modal, reduced motion e fallback sem WebGL. Os resultados e capturas ficam em `qa/` (não publicados).
 
 Scroll nativo, sem interceptar roda ou touch. Animações são calculadas apenas em eventos e durante a curta interpolação; o canvas deixa de renderizar fora da viewport e a aba oculta suspende o agendador. Sem trackers, armazenamento de dados pessoais ou fontes externas.

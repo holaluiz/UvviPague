@@ -1,6 +1,7 @@
 import {chromium} from '@playwright/test';
 import {mkdir,writeFile} from 'node:fs/promises';
 if(process.argv.includes('--visual')){await import('./visual-qa.mjs');process.exit(0)}
+if(process.argv.includes('--interactive')){await import('./interactive-qa.mjs');process.exit(0)}
 await mkdir('qa',{recursive:true});
 const browser=await chromium.launch({channel:'chrome',headless:true,args:['--enable-webgl','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
 const results=[];const errors=[];
