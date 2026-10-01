@@ -21,12 +21,12 @@ export async function createVehicle(canvas) {
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(31, 1, 0.1, 100);
   camera.position.set(6.2, 3.5, 7.8);
-  camera.lookAt(0, 0.62, 0);
+  camera.lookAt(0, 0.65, 0);
 
   const hemi = new THREE.HemisphereLight(0xffffff, 0x84988e, 2.8);
   scene.add(hemi);
 
-  const key = new THREE.DirectionalLight(0xffffff, 4.0);
+  const key = new THREE.DirectionalLight(0xffffff, 4.2);
   key.position.set(4, 7, 5);
   scene.add(key);
 
@@ -34,12 +34,22 @@ export async function createVehicle(canvas) {
   fill.position.set(-5, 3, -4);
   scene.add(fill);
 
-  const top = new THREE.DirectionalLight(0xffffff, 1.8);
+  const top = new THREE.DirectionalLight(0xffffff, 2.0);
   top.position.set(0, 8, 2);
   scene.add(top);
 
   const car = new THREE.Group();
   scene.add(car);
+
+  // Load custom metallic gray textures
+  const textureLoader = new THREE.TextureLoader();
+  const bodyGrayTexture = textureLoader.load('/assets/body-gray.png');
+  bodyGrayTexture.flipY = false;
+  bodyGrayTexture.colorSpace = THREE.SRGBColorSpace;
+
+  const miscGrayTexture = textureLoader.load('/assets/misc-gray.png');
+  miscGrayTexture.flipY = false;
+  miscGrayTexture.colorSpace = THREE.SRGBColorSpace;
 
   const loader = new GLTFLoader();
   const gltf = await new Promise((resolve, reject) => {
@@ -60,6 +70,27 @@ export async function createVehicle(canvas) {
 
   const model = gltf.scene;
 
+  // Apply elegant metallic gray/silver finish and clean wheels
+  model.traverse((child) => {
+    if (child.isMesh && child.material) {
+      if (child.material.name === 'sedan_body') {
+        child.material.map = bodyGrayTexture;
+        child.material.metalness = 0.72;
+        child.material.roughness = 0.26;
+        child.material.needsUpdate = true;
+      } else if (child.material.name === 'sedan_miscellaneous') {
+        child.material.map = miscGrayTexture;
+        child.material.metalness = 0.65;
+        child.material.roughness = 0.32;
+        child.material.needsUpdate = true;
+      }
+
+      if (child.name && child.name.includes('numbers_id')) {
+        child.visible = false;
+      }
+    }
+  });
+
   const box = new THREE.Box3().setFromObject(model);
   const center = new THREE.Vector3();
   box.getCenter(center);
@@ -71,9 +102,13 @@ export async function createVehicle(canvas) {
   const inner = new THREE.Group();
   inner.add(model);
   inner.rotation.y = Math.PI / 2;
-  inner.scale.setScalar(0.82);
+
+  // Larger car size (increased scale as requested)
+  const CAR_SCALE = 1.05;
+  inner.scale.setScalar(CAR_SCALE);
   car.add(inner);
 
+  // Mercosul Plate texture
   const plateCanvas = document.createElement('canvas');
   plateCanvas.width = 256;
   plateCanvas.height = 96;
@@ -102,14 +137,9 @@ export async function createVehicle(canvas) {
     new THREE.MeshBasicMaterial({ map: plateTexture, side: THREE.DoubleSide })
   );
   plate.rotation.y = Math.PI / 2;
-  plate.position.set(2.07, 0.38, 0);
+  plate.position.set(2.52 * CAR_SCALE, 0.44 * CAR_SCALE, 0);
+  plate.scale.setScalar((CAR_SCALE / 0.82) * 0.95);
   car.add(plate);
-
-  model.traverse((child) => {
-    if (child.name && child.name.includes('numbers_id')) {
-      child.visible = false;
-    }
-  });
 
   let compiled = false;
   const parent = canvas.parentElement;
@@ -130,7 +160,7 @@ export async function createVehicle(canvas) {
     car.position.y = Math.sin(progress * Math.PI) * 0.065;
     car.position.x = progress * 0.12;
     camera.position.y = 3.5 + Math.sin(progress * Math.PI) * 0.35;
-    camera.lookAt(0, 0.62, 0);
+    camera.lookAt(0, 0.65, 0);
     const scale = focused ? 1.015 : 1;
     car.scale.setScalar(scale);
     renderer.render(scene, camera);
@@ -173,6 +203,8 @@ export async function createVehicle(canvas) {
         }
       });
       plateTexture.dispose();
+      bodyGrayTexture.dispose();
+      miscGrayTexture.dispose();
     }
   };
 }
