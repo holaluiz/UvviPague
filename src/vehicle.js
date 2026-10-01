@@ -141,6 +141,14 @@ export async function createVehicle(canvas) {
   plate.scale.setScalar((CAR_SCALE / 0.82) * 0.95);
   car.add(plate);
 
+  let currentScale = 1.05;
+  function updateCarScale(scale) {
+    currentScale = scale;
+    inner.scale.setScalar(scale);
+    plate.position.set(2.52 * scale, 0.44 * scale, 0);
+    plate.scale.setScalar((scale / 0.82) * 0.95);
+  }
+
   let compiled = false;
   const parent = canvas.parentElement;
   function resize() {
@@ -148,6 +156,15 @@ export async function createVehicle(canvas) {
     const h = parent.clientHeight;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
+    if (camera.aspect < 1.0) {
+      camera.fov = 34;
+      camera.position.set(7.0, 3.8, 8.8);
+      updateCarScale(0.80);
+    } else {
+      camera.fov = 31;
+      camera.position.set(6.2, 3.5, 7.8);
+      updateCarScale(1.05);
+    }
     camera.updateProjectionMatrix();
     if (compiled) renderer.render(scene, camera);
   }
@@ -159,7 +176,7 @@ export async function createVehicle(canvas) {
     car.rotation.y = -0.15 + progress * 0.65 + orbit;
     car.position.y = Math.sin(progress * Math.PI) * 0.065;
     car.position.x = progress * 0.12;
-    camera.position.y = 3.5 + Math.sin(progress * Math.PI) * 0.35;
+    camera.position.y = (camera.aspect < 1.0 ? 3.8 : 3.5) + Math.sin(progress * Math.PI) * 0.35;
     camera.lookAt(0, 0.65, 0);
     const scale = focused ? 1.015 : 1;
     car.scale.setScalar(scale);

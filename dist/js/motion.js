@@ -20,12 +20,42 @@ export function initMotion(){
  const progress=(el,start=.85,end=.2)=>{const r=el.getBoundingClientRect();return clamp((innerHeight*start-r.top)/(r.height+innerHeight*(start-end)))};
  function draw(time){frame=0;if(document.hidden)return;const scrolling=smooth.tick(time);const interactive=controls.tick(time);const focused=document.body.classList.contains('form-focused');const h=hero.getBoundingClientRect();target=controls.state.manualHero??(reduced.matches?1:mobile.matches?clamp((innerHeight*.72-scene.getBoundingClientRect().top)/(scene.offsetHeight*.75)):clamp(-h.top/Math.max(1,hero.offsetHeight-innerHeight)));current=reduced.matches?target:current+(target-current)*controls.state.damping;
  if(Math.abs(target-current)<.0007)current=target;
- const effective=focused?Math.min(current,.35):current;const merge=clamp((effective-.57)/.3);const phase=Math.min(4,Math.floor(current*4.999));
+ const effective=focused?Math.min(current,.35):current;const isMobile=mobile.matches;const merge=clamp((effective-.52)/.36);const phase=Math.min(4,Math.floor(current*4.999));
  document.querySelector('#scene-status').textContent=statuses[phase];document.querySelector('.scene-count').innerHTML=`0${phase+1} <span>/ 05</span>`;document.querySelector('.scene-progress i').style.transform=`scaleX(${.05+current*.95})`;
  document.querySelectorAll('[data-chapter]').forEach((b,i)=>b.setAttribute('aria-pressed',String(i===phase)));
  scene.dataset.phase=phase;document.querySelector('.scene-caption').textContent=['CONSULTAR.','IDENTIFICAR.','ORGANIZAR.','PARCELAR.','CONTINUAR.'][phase];document.querySelector('.scan-line').style.opacity=String(Math.sin(clamp((effective-.12)/.4)*Math.PI));document.querySelector('.scan-line').style.transform=`translateY(${effective*210}px)`;
- cards.forEach((card,i)=>{const x=[18,-24,35,-22][i]*effective+merge*[140,-65,150,-45][i];const y=[22,0,-18,-32][i]*effective+merge*[85,35,-95,-50][i];card.style.transform=`translate(${x}px,${y}px) rotate(${[-5,5,-3,3][i]*(1-effective)}deg) scale(${1-merge*.32})`;card.style.opacity=String(i===3?clamp(effective*3)*(1-merge):1-merge);card.inert=merge>.7||(i===3&&effective<.05);card.style.pointerEvents=merge>.7?'none':'auto'});
- scenePhone.style.opacity=String(merge);scenePhone.style.transform=`translateY(${(1-merge)*20}px) rotate(${(1-merge)*5}deg)`;
+ cards.forEach((card,i)=>{
+  if(isMobile){
+   const driftX=[6,-8,8,-6][i]*effective;
+   const driftY=[8,-6,-6,-8][i]*effective;
+   const fadeOut=clamp(1-merge*2.2);
+   const cardScale=1-merge*0.35;
+   card.style.transform=`translate(${driftX}px,${driftY}px) rotate(${[-3,3,-2,2][i]*(1-effective)}deg) scale(${cardScale})`;
+   card.style.opacity=String(i===3?(effective>0.3?clamp((effective-0.3)*3.5)*fadeOut:0):fadeOut);
+   card.inert=fadeOut<0.15;
+   card.style.pointerEvents=fadeOut<0.15?'none':'auto';
+  }else{
+   const x=[18,-24,35,-22][i]*effective+merge*[140,-65,150,-45][i];
+   const y=[22,0,-18,-32][i]*effective+merge*[85,35,-95,-50][i];
+   card.style.transform=`translate(${x}px,${y}px) rotate(${[-5,5,-3,3][i]*(1-effective)}deg) scale(${1-merge*.32})`;
+   card.style.opacity=String(i===3?clamp(effective*3)*(1-merge):1-merge);
+   card.inert=merge>.7||(i===3&&effective<.05);
+   card.style.pointerEvents=merge>.7?'none':'auto';
+  }
+ });
+ const plateTag=document.querySelector('.plate-tag');
+ if(plateTag){
+  if(isMobile){
+   const plateFade=clamp(1-merge*2.0);
+   plateTag.style.opacity=String(plateFade);
+   plateTag.style.pointerEvents=plateFade<0.15?'none':'auto';
+  }else{
+   plateTag.style.opacity='1';
+   plateTag.style.pointerEvents='auto';
+  }
+ }
+ const phoneIn=isMobile?clamp((merge-0.2)/0.8):merge;
+ scenePhone.style.opacity=String(phoneIn);scenePhone.style.transform=`translateY(${(1-phoneIn)*20}px) rotate(${(1-phoneIn)*5}deg)`;
  document.querySelector('.scene-number').style.transform=`translateY(${-effective*15}px)`;
  document.querySelector('.vehicle-fallback img').style.transform=reduced.matches?'none':`perspective(800px) translateX(${effective*7+controls.state.orbit*25}px) rotateY(${controls.state.orbit*17}deg) rotateZ(${controls.state.orbit*-2}deg)`;
  if(vehicle&&visible&&(Math.abs(vehicleProgress-effective)>.0005||focused||vehicleProgress<0||interactive)){vehicle.render(effective,focused,controls.state.orbit);vehicleProgress=effective;}
