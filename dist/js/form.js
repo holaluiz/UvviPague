@@ -10,6 +10,6 @@ export function initForm(){
  [plate,email,phone].forEach(field=>field.addEventListener('blur',()=>{if(field.value)validate(field)}));
  form.addEventListener('focusin',()=>{document.body.classList.add('form-focused');window.dispatchEvent(new Event('motionrefresh'))});
  form.addEventListener('focusout',()=>{queueMicrotask(()=>{if(!form.contains(document.activeElement)){document.body.classList.remove('form-focused');window.dispatchEvent(new Event('motionrefresh'))}})});
- form.addEventListener('submit',event=>{event.preventDefault();const invalid=[plate,email,phone].filter(field=>!validate(field));if(invalid.length){invalid[0].focus();return}const result=form.querySelector('.form-result');result.hidden=false;result.textContent='A consulta de débitos ainda não está conectada nesta versão. Nenhum dado foi enviado. Seus dados permanecem apenas nesta página.';});
+ form.addEventListener('submit',event=>{event.preventDefault();const invalid=[plate,email,phone].filter(field=>!validate(field));if(invalid.length){invalid[0].focus();return}const result=form.querySelector('.form-result');result.hidden=false;result.textContent='Nenhum dado foi enviado. Continue no site oficial para consultar seus débitos. ';const link=document.createElement('a');link.href='https://www.uvvipague.com.br/#consultar-debitos';link.target='_blank';link.rel='noopener noreferrer';link.textContent='Ir para a consulta oficial ↗';result.append(link);});
  return api;
 }

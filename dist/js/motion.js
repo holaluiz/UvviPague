@@ -1,4 +1,5 @@
 import {createInteractions} from './interactions.js';
+import {initSmoothScroll} from './smooth-scroll.js';
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 export function initMotion(){
  const reduced=matchMedia('(prefers-reduced-motion: reduce)');const mobile=matchMedia('(max-width: 760px)');
@@ -17,7 +18,7 @@ export function initMotion(){
  ['wheel','touchmove'].forEach(name=>addEventListener(name,event=>{if(event.target.closest?.('.phone'))return;manualApp=false},{passive:true}));
  addEventListener('keydown',event=>{if(['ArrowDown','ArrowUp','PageDown','PageUp','Home','End',' '].includes(event.key)&&!event.target.matches('input'))manualApp=false});
  const progress=(el,start=.85,end=.2)=>{const r=el.getBoundingClientRect();return clamp((innerHeight*start-r.top)/(r.height+innerHeight*(start-end)))};
- function draw(time){frame=0;if(document.hidden)return;const interactive=controls.tick(time);const focused=document.body.classList.contains('form-focused');const h=hero.getBoundingClientRect();target=controls.state.manualHero??(reduced.matches?1:mobile.matches?clamp((innerHeight*.72-scene.getBoundingClientRect().top)/(scene.offsetHeight*.75)):clamp(-h.top/Math.max(1,hero.offsetHeight-innerHeight)));current=reduced.matches?target:current+(target-current)*controls.state.damping;
+ function draw(time){frame=0;if(document.hidden)return;const scrolling=smooth.tick(time);const interactive=controls.tick(time);const focused=document.body.classList.contains('form-focused');const h=hero.getBoundingClientRect();target=controls.state.manualHero??(reduced.matches?1:mobile.matches?clamp((innerHeight*.72-scene.getBoundingClientRect().top)/(scene.offsetHeight*.75)):clamp(-h.top/Math.max(1,hero.offsetHeight-innerHeight)));current=reduced.matches?target:current+(target-current)*controls.state.damping;
  if(Math.abs(target-current)<.0007)current=target;
  const effective=focused?Math.min(current,.35):current;const merge=clamp((effective-.57)/.3);const phase=Math.min(4,Math.floor(current*4.999));
  document.querySelector('#scene-status').textContent=statuses[phase];document.querySelector('.scene-count').innerHTML=`0${phase+1} <span>/ 05</span>`;document.querySelector('.scene-progress i').style.transform=`scaleX(${.05+current*.95})`;
@@ -38,10 +39,11 @@ export function initMotion(){
  document.querySelector('.reading-progress').style.transform=`scaleX(${scrollY/Math.max(1,document.documentElement.scrollHeight-innerHeight)})`;
  let active='inicio';document.querySelectorAll('.journey-navigation a').forEach(a=>{if(document.getElementById(a.dataset.section).getBoundingClientRect().top<innerHeight*.55)active=a.dataset.section});document.querySelectorAll('.journey-navigation a').forEach(a=>{if(a.dataset.section===active)a.setAttribute('aria-current','step');else a.removeAttribute('aria-current')});
  document.querySelector('.bridge-pulse').style.transform=`translateX(${progress(document.querySelector('.journey-bridge'),1,.1)*100}vw)`;
- if((current!==target||interactive)&&!reduced.matches&&!frame)frame=requestAnimationFrame(draw);
+ if((scrolling||((current!==target||interactive)&&!reduced.matches))&&!frame)frame=requestAnimationFrame(draw);
  }
  const refresh=()=>{if(!frame&&!document.hidden)frame=requestAnimationFrame(draw)};
  const controls=createInteractions({refresh,showAppStep,getAppStep:()=>appStep,reduced});
+ const smooth=initSmoothScroll(refresh);
  const observe=new IntersectionObserver(entries=>{visible=entries[0].isIntersecting;scene.classList.toggle('scene-visible',visible);if(visible){vehicleProgress=-1;refresh()}},{rootMargin:'100px'});observe.observe(scene);
  ['scroll','resize','motionrefresh'].forEach(name=>addEventListener(name,refresh,{passive:true}));document.addEventListener('visibilitychange',()=>{document.body.classList.toggle('document-hidden',document.hidden);if(document.hidden){cancelAnimationFrame(frame);frame=0}else refresh()});reduced.addEventListener('change',refresh);mobile.addEventListener('change',refresh);
  document.querySelectorAll('.solution').forEach(el=>{el.addEventListener('pointermove',e=>{if(reduced.matches||e.pointerType!=='mouse')return;const r=el.getBoundingClientRect();el.style.transform=`rotateX(${-(e.clientY-r.top-r.height/2)/r.height*4}deg) rotateY(${(e.clientX-r.left-r.width/2)/r.width*4}deg)`});el.addEventListener('pointerleave',()=>{el.style.transform='none'})});
